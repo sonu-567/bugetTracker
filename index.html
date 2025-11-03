@@ -1,1 +1,968 @@
+<!DOCTYPE html>
+<html lang="en">
 
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Budget Dashboard with Login</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
+        body {
+            font-family: "Poppins", sans-serif;
+            background: linear-gradient(135deg, #4facfe, #00f2fe);
+            display: flex;
+            justify-content: center;
+            /* REMOVED: align-items: center; to allow container content to flow from top */
+            height: 100vh;
+            margin: 0;
+            padding-top: 20px;
+            /* Add some padding to the top of the body */
+            color: #333;
+        }
+        
+        .container {
+            background: #fff;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(127, 31, 31, 0.2);
+            width: 90%;
+            max-width: 1100px;
+            text-align: center;
+            overflow-y: auto;
+            max-height: 95vh;
+            /* Added margin-bottom to ensure it doesn't hug the bottom */
+            margin-bottom: 20px;
+        }
+        
+        h1 {
+            color: #0078ff;
+        }
+        
+        select,
+        input,
+        button {
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-size: 16px;
+        }
+        
+        button {
+            background: linear-gradient(90deg, #0078ff, #00d4ff);
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            transition: 0.3s;
+        }
+        
+        button:hover {
+            transform: scale(1.05);
+        }
+        
+        .category-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .card {
+            background: #f9f9f9;
+            border-radius: 15px;
+            padding: 15px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            position: relative;
+        }
+        
+        .card h3 {
+            margin-bottom: 10px;
+        }
+        
+        .card input {
+            width: 100%;
+            margin-bottom: 8px;
+        }
+        
+        .card .delete-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #ff4c4c;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .summary {
+            display: flex;
+            justify-content: space-around;
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 15px;
+            margin-bottom: 25px;
+        }
+        
+        .dashboard-insights {
+            background: #e9f9f0;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 25px;
+        }
+        
+        canvas {
+            margin-top: 20px;
+            background: #fff;
+            border-radius: 12px;
+            padding: 10px;
+            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .highlight {
+            font-weight: bold;
+            color: #0078ff;
+        }
+        /* LOGIN / REGISTER STYLES */
+        
+        .auth-container {
+            background: #fff;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            width: 400px;
+            text-align: center;
+        }
+        
+        .auth-container input {
+            width: 80%;
+            margin: 10px 0;
+            padding: 10px;
+            border: 1px solid #ccc;
+        }
+        
+        .switch-link {
+            color: #0078ff;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+        
+        .logout-btn {
+            background: #f44336;
+            border-radius: 8px;
+            padding: 6px 12px;
+            color: white;
+            font-weight: 600;
+            border: none;
+            margin-bottom: 15px;
+            cursor: pointer;
+            float: right;
+        }
+        /* NEW STYLES for Records/Reports/Distribution */
+        
+        .hidden {
+            display: none !important;
+        }
+        
+        #records table,
+        #reports div {
+            text-align: left;
+        }
+        
+        #records th,
+        #records td {
+            padding: 8px;
+            text-align: center;
+        }
+        
+        #records th {
+            background-color: #f2f2f2;
+        }
+        
+        #expenseDistribution {
+            max-width: 600px;
+            /* Constrain chart width for better display */
+            margin: 0 auto 0 auto;
+            /* Removed vertical auto margin for top alignment */
+            padding-top: 0;
+            /* Ensure content starts at the top */
+            text-align: left;
+            /* Align text content like the H2 to the left/top */
+        }
+        
+        #expenseDistribution h2,
+        #expenseDistribution p {
+            text-align: center;
+            /* Center the title and description */
+        }
+        
+        #expenseChart {
+            /* Ensures the canvas itself has enough height for the chart to display */
+            max-height: 400px;
+            margin: 20px auto;
+            /* Center the canvas horizontally */
+        }
+        /* NEW STYLE for Members Section */
+        
+        #memberForm {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        #memberForm input {
+            flex-grow: 1;
+            max-width: 250px;
+        }
+        
+        #membersList {
+            margin-top: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            justify-content: center;
+        }
+        
+        .member-card {
+            background: #e6f7ff;
+            border: 1px solid #b3e0ff;
+            border-radius: 10px;
+            padding: 10px 15px;
+            text-align: left;
+            width: 200px;
+            position: relative;
+        }
+        
+        .member-card h4 {
+            margin: 0 0 5px 0;
+            color: #0078ff;
+        }
+        
+        .member-card p {
+            margin: 0;
+            font-size: 0.9em;
+        }
+        
+        .member-card .delete-member-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: none;
+            color: #ff4c4c;
+            border: none;
+            font-size: 1.2em;
+            padding: 0;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+        
+        .member-card .delete-member-btn:hover {
+            color: #cc0000;
+            transform: scale(1.1);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="authSection" class="auth-container">
+        <h2 id="authTitle">🔐 Login</h2>
+        <input type="email" id="authEmail" placeholder="Email" /><br>
+        <input type="password" id="authPassword" placeholder="Password" /><br>
+        <button id="authActionBtn">Login</button>
+        <p id="switchText">Don’t have an account? <span class="switch-link" id="switchLink">Register</span></p>
+    </div>
+
+    <div id="dashboardSection" class="container" style="display:none;">
+        <button class="logout-btn" id="logoutBtn">Logout</button>
+        <h1>💰 Budget Dashboard - <span id="usernameDisplay"></span></h1>
+
+        <div style="margin-bottom:15px; text-align: left;">
+            <button onclick="showSection('dashboardMain')">Dashboard</button>
+            <button onclick="showSection('reports')">Reports</button>
+            <button onclick="showSection('records')">Records</button>
+            <button onclick="showSection('expenseDistribution')">Distribution</button>
+            <button onclick="showSection('membersSection')">Members</button> </div>
+
+        <div style="margin-bottom: 20px;">
+            <select id="monthSelector"></select>
+            <select id="yearSelector"></select>
+        </div>
+
+        <div id="dashboardMain">
+            <div class="budget-setup">
+                <input type="number" id="totalBudgetInput" placeholder="Set total budget (₹)" />
+                <button id="setBudgetBtn">Set Budget</button>
+            </div>
+
+            <div class="summary">
+                <div>
+                    <h4>Total Budget</h4>
+                    <p id="totalBudget">₹0</p>
+                </div>
+                <div>
+                    <h4>Total Spent</h4>
+                    <p id="balance">₹0</p>
+                </div>
+                <div>
+                    <h4>Remaining</h4>
+                    <p id="remaining">₹0</p>
+                </div>
+            </div>
+
+            <div class="dashboard-insights">
+                <p>💹 <span class="highlight" id="percentUsed">0%</span> of your budget used this month.</p>
+                <p>🏆 Highest Spending: <span class="highlight" id="topCategory">None</span></p>
+            </div>
+
+            <h2>Expense Categories</h2>
+            <div class="category-grid" id="categoryGrid"></div>
+
+        </div>
+
+        <div id="reports" class="hidden">
+            <h2>📊 Monthly Report</h2>
+            <div style="display:flex;justify-content:space-around;margin:10px 0;">
+                <div style="background:#f2f2f2;padding:15px;border-radius:10px;width:30%;">
+                    <h3>Total Budget</h3>
+                    <p id="rBudget" style="font-size: 1.5em; color: #0078ff;">₹0</p>
+                </div>
+                <div style="background:#f2f2f2;padding:15px;border-radius:10px;width:30%;">
+                    <h3>Total Spent</h3>
+                    <p id="rSpent" style="font-size: 1.5em; color: #f44336;">₹0</p>
+                </div>
+                <div style="background:#f2f2f2;padding:15px;border-radius:10px;width:30%;">
+                    <h3>Remaining</h3>
+                    <p id="rRemain" style="font-size: 1.5em; color: #4CAF50;">₹0</p>
+                </div>
+            </div>
+            <div style="background:#f2f2f2;padding:15px;border-radius:10px;margin-top:15px;">
+                <h3>Spent Percentage</h3>
+                <p id="rPercent" style="font-size: 2em; color: #0078ff;">0%</p>
+            </div>
+            <h3 style="margin-top: 20px;">Category Breakdown</h3>
+            <div class="category-grid" id="reportBreakdown">
+            </div>
+        </div>
+
+        <div id="records" class="hidden">
+            <h2>📘 Expense Records</h2>
+            <table border="1" width="100%" style="border-collapse:collapse;margin-top:10px;">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Category</th>
+                        <th>Amount</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="recordBody"></tbody>
+            </table>
+            <p id="noRecords" style="margin-top: 10px; color: #999;">No expenses recorded for this month.</p>
+        </div>
+
+        <div id="expenseDistribution" class="hidden">
+            <h2>📊 Expense Distribution</h2>
+            <p>View of total expenses by category for the selected month.</p>
+            <canvas id="expenseChart"></canvas>
+        </div>
+
+        <div id="membersSection" class="hidden">
+            <h2>🧑‍🤝‍🧑 Budget Members</h2>
+            <p>Add and manage members who share the budget. You can set a *Share Multiplier* if a member represents more than one person.</p>
+            <div id="memberForm">
+                <input type="text" id="memberNameInput" placeholder="Member Name" />
+                <input type="number" id="memberShareInput" placeholder="Share Multiplier (e.g., 1 or 2)" value="1" min="1" />
+                <button onclick="addMember()">Add Member</button>
+            </div>
+            <div id="membersList">
+                <p id="noMembers" style="margin-top: 10px; color: #999;">No members added yet.</p>
+            </div>
+            <div style="margin-top: 30px; background: #e9f9f0; padding: 15px; border-radius: 12px;">
+                <h3>Total Share Units: <span class="highlight" id="totalShareUnits">0</span></h3>
+                <p>This total can be used to calculate each member's proportional share of the total budget.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /* ----------------- LOGIN & REGISTER LOGIC ------------------- */
+        const authSection = document.getElementById("authSection");
+        const dashboardSection = document.getElementById("dashboardSection");
+        const authTitle = document.getElementById("authTitle");
+        const authActionBtn = document.getElementById("authActionBtn");
+        const switchText = document.getElementById("switchText");
+        const switchLink = document.getElementById("switchLink");
+        const emailInput = document.getElementById("authEmail");
+        const passInput = document.getElementById("authPassword");
+        const logoutBtn = document.getElementById("logoutBtn");
+        const usernameDisplay = document.getElementById("usernameDisplay");
+
+        let isLoginMode = true;
+
+        function loadUsers() {
+            return JSON.parse(localStorage.getItem("users")) || {};
+        }
+
+        function saveUsers(users) {
+            localStorage.setItem("users", JSON.stringify(users));
+        }
+
+        function setupSwitchLink() {
+            const linkElement = document.getElementById("switchLink");
+            if (linkElement) {
+                linkElement.onclick = () => {
+                    isLoginMode = !isLoginMode;
+                    authTitle.textContent = isLoginMode ? "🔐 Login" : "📝 Register";
+                    authActionBtn.textContent = isLoginMode ? "Login" : "Register";
+                    switchText.innerHTML = isLoginMode ?
+                        Don’t have an account? <span class="switch-link" id="switchLink">Register</span> :
+                        Already have an account? <span class="switch-link" id="switchLink">Login</span>;
+                    setupSwitchLink(); // Re-attach handler
+                };
+            }
+        }
+        setupSwitchLink();
+
+        authActionBtn.onclick = () => {
+            const email = emailInput.value.trim();
+            const password = passInput.value.trim();
+            if (!email || !password) return alert("Please fill all fields.");
+
+            let users = loadUsers();
+
+            if (isLoginMode) {
+                if (!users[email]) return alert("User not found! Please register.");
+                if (users[email].password !== password) return alert("Incorrect password!");
+                localStorage.setItem("loggedInUser", email);
+                showDashboard(email);
+            } else {
+                if (users[email]) return alert("User already exists! Please login.");
+                users[email] = {
+                    password
+                };
+                saveUsers(users);
+                alert("Registration successful! Please login now.");
+                isLoginMode = true;
+                setupSwitchLink();
+            }
+        };
+
+        function showDashboard(email) {
+            authSection.style.display = "none";
+            dashboardSection.style.display = "block";
+            usernameDisplay.textContent = email;
+            // Ensure initial load is on the dashboard
+            showSection('dashboardMain');
+            // Initial load of members and budget data on login
+            renderMembers();
+            updateUI();
+        }
+
+        logoutBtn.onclick = () => {
+            localStorage.removeItem("loggedInUser");
+            location.reload();
+        };
+
+        const loggedUser = localStorage.getItem("loggedInUser");
+        if (loggedUser) showDashboard(loggedUser);
+
+        /* ----------------- DASHBOARD LOGIC ------------------- */
+        const categories = [{
+            key: 'room',
+            label: '🏠 Room Rent'
+        }, {
+            key: 'maintenance',
+            label: '🧾 Maintenance Bill'
+        }, {
+            key: 'electricity',
+            label: '⚡ Electricity Bill'
+        }, {
+            key: 'groceries',
+            label: '🛒 Groceries'
+        }, {
+            key: 'travel',
+            label: '🚗 Travel'
+        }, {
+            key: 'food',
+            label: '🍽 Food'
+        }, {
+            key: 'other',
+            label: '💼 Other'
+        }, ];
+
+        const monthSelector = document.getElementById("monthSelector");
+        const yearSelector = document.getElementById("yearSelector");
+        const totalBudgetInput = document.getElementById("totalBudgetInput");
+        const setBudgetBtn = document.getElementById("setBudgetBtn");
+        const totalBudget = document.getElementById("totalBudget");
+        const balance = document.getElementById("balance");
+        const remaining = document.getElementById("remaining");
+        const percentUsed = document.getElementById("percentUsed");
+        const topCategory = document.getElementById("topCategory");
+        const categoryGrid = document.getElementById("categoryGrid");
+
+        const monthNames = ["January", "February", "March", "April", "May", "June",
+            "July", "August", "September", "October", "November", "December"
+        ];
+
+        monthNames.forEach((m, i) => {
+            const opt = document.createElement("option");
+            opt.value = String(i + 1).padStart(2, "0");
+            opt.textContent = m;
+            monthSelector.appendChild(opt);
+        });
+
+        for (let y = 2024; y <= 2100; y++) {
+            const opt = document.createElement("option");
+            opt.value = y;
+            opt.textContent = y;
+            yearSelector.appendChild(opt);
+        }
+
+        monthSelector.value = String(new Date().getMonth() + 1).padStart(2, "0");
+        yearSelector.value = new Date().getFullYear();
+
+        function getUserData() {
+            const email = localStorage.getItem("loggedInUser");
+            let allData = JSON.parse(localStorage.getItem("budgetData")) || {};
+            if (!allData[email]) allData[email] = {};
+            return allData;
+        }
+
+        function saveUserData(allData) {
+            localStorage.setItem("budgetData", JSON.stringify(allData));
+        }
+
+        function getKey() {
+            return ${yearSelector.value}-${String(monthSelector.value).padStart(2, "0")};
+        }
+
+        function getMonthData() {
+            const email = localStorage.getItem("loggedInUser");
+            if (!email) return null; // Should not happen if dashboard is shown
+
+            const allData = getUserData();
+            const key = getKey();
+            if (!allData[email][key]) {
+                allData[email][key] = {
+                    budgetLimit: 0,
+                    transactions: [],
+                    members: [], // Initialize members array
+                };
+            }
+            // Ensure transactions array exists
+            if (!allData[email][key].transactions) {
+                allData[email][key].transactions = [];
+            }
+            // Ensure members array exists
+            if (!allData[email][key].members) {
+                allData[email][key].members = [];
+            }
+
+            saveUserData(allData);
+            return allData[email][key];
+        }
+
+        function renderCategories() {
+            categoryGrid.innerHTML = "";
+            categories.forEach(c => {
+                const div = document.createElement("div");
+                div.className = "card";
+                div.innerHTML = `<button class="delete-btn" onclick="deleteCategoryTotal('${c.key}')">✖ Reset</button>
+            <h3>${c.label}</h3>
+            <input type="number" id="${c.key}Input" placeholder="Enter amount" />
+            <button onclick="addExpense('${c.key}')">Add Expense</button>
+            <p>Total Spent: <span id="${c.key}Total">₹0</span></p>
+            `;
+                categoryGrid.appendChild(div);
+            });
+        }
+        renderCategories();
+
+        function calculateCategoryTotals(data) {
+            // Calculate expenses totals from transactions list
+            const totals = {};
+            categories.forEach(c => totals[c.key] = 0);
+            data.transactions.forEach(t => {
+                // Ensure transaction has a category and amount, and it's a number
+                if (t.category && typeof t.amount === 'number') {
+                    totals[t.category] += t.amount;
+                }
+            });
+            // Attach the calculated totals back to the data object for easy access
+            data.expenses = totals;
+            return data;
+        }
+
+        function updateUI() {
+            if (!localStorage.getItem("loggedInUser")) return;
+            let data = getMonthData();
+            if (!data) return;
+
+            // Always calculate totals from the transaction list before updating UI
+            data = calculateCategoryTotals(data);
+
+            totalBudget.textContent = ₹${data.budgetLimit.toFixed(2)};
+
+            let totalSpent = 0,
+                highest = {
+                    cat: "None",
+                    val: 0
+                };
+
+            categories.forEach(c => {
+                const spent = data.expenses[c.key] || 0;
+                totalSpent += spent;
+                if (spent > highest.val)
+                    highest = {
+                        cat: c.label,
+                        val: spent
+                    };
+                const totalElement = document.getElementById(${c.key}Total);
+                if (totalElement) {
+                    totalElement.textContent = ₹${spent.toFixed(2)};
+                }
+            });
+
+            balance.textContent = ₹${totalSpent.toFixed(2)};
+            const remainingAmt = data.budgetLimit - totalSpent;
+            remaining.textContent = ₹${remainingAmt.toFixed(2)};
+            // Update color based on remaining budget
+            remaining.style.color = remainingAmt < 0 ? '#f44336' : '#4CAF50';
+
+            percentUsed.textContent = data.budgetLimit > 0 ?
+                ((totalSpent / data.budgetLimit) * 100).toFixed(1) + "%" :
+                "0%";
+            topCategory.textContent = highest.cat;
+
+            // Update all views if they are visible
+            const activeSection = document.querySelector('#dashboardSection > div:not(.hidden):not([style="display:none;"])');
+            const currentSectionId = activeSection ? activeSection.id : 'dashboardMain';
+
+            // Only update non-dashboard sections if they are currently visible
+            if (currentSectionId === 'records') renderRecords();
+            if (currentSectionId === 'reports') updateReport();
+            if (currentSectionId === 'membersSection') renderMembers(); // Update members section
+        }
+
+        setBudgetBtn.onclick = () => {
+            const val = parseFloat(totalBudgetInput.value);
+            if (isNaN(val) || val <= 0) return alert("Enter a valid total budget!");
+            const data = getMonthData();
+            if (!data) return;
+
+            data.budgetLimit = val;
+            const allData = getUserData();
+            allData[localStorage.getItem("loggedInUser")][getKey()] = data;
+            saveUserData(allData);
+            totalBudgetInput.value = "";
+            updateUI();
+        };
+
+        window.addExpense = function(category) {
+            const input = document.getElementById(${category}Input);
+            const val = parseFloat(input.value);
+            if (isNaN(val) || val <= 0) return alert("Enter a valid expense amount!");
+
+            const data = getMonthData();
+            if (!data) return;
+
+            const categoryLabel = categories.find(c => c.key === category).label;
+
+            // Add new transaction with a unique ID
+            data.transactions.push({
+                id: Date.now() + Math.random(),
+                date: new Date().toLocaleString(),
+                category: category,
+                categoryLabel: categoryLabel,
+                amount: val
+            });
+
+            // Save updated data
+            const allData = getUserData();
+            allData[localStorage.getItem("loggedInUser")][getKey()] = data;
+            saveUserData(allData);
+            input.value = "";
+            updateUI();
+        }
+
+        window.deleteCategoryTotal = function(category) {
+            if (!confirm(Are you sure you want to reset all recorded expenses for ${categories.find(c => c.key === category).label} for this month? This action deletes all transactions for this category.)) return;
+
+            const data = getMonthData();
+            if (!data) return;
+
+            // Filter out all transactions for this category
+            data.transactions = data.transactions.filter(t => t.category !== category);
+
+            // Save updated data
+            const allData = getUserData();
+            allData[localStorage.getItem("loggedInUser")][getKey()] = data;
+            saveUserData(allData);
+            updateUI();
+        }
+
+        monthSelector.onchange = updateUI;
+        yearSelector.onchange = updateUI;
+
+        let expenseChart;
+
+        function updateCharts(data) {
+            // Calculate totals for chart data
+            const totals = calculateCategoryTotals(data).expenses;
+
+            // Filter out categories with 0 expense for cleaner chart
+            const activeCategories = categories.filter(c => (totals[c.key] || 0) > 0);
+            const expenseValues = activeCategories.map(c => totals[c.key]);
+            const labels = activeCategories.map(c => c.label);
+
+            // IMPORTANT: Destroy the old chart instance before creating a new one
+            if (expenseChart) expenseChart.destroy();
+
+            const expCtx = document.getElementById("expenseChart").getContext("2d");
+            if (expenseValues.reduce((a, b) => a + b, 0) === 0) {
+                // Clear canvas if total spent is 0
+                expCtx.clearRect(0, 0, expCtx.canvas.width, expCtx.canvas.height);
+                return;
+            }
+
+            expenseChart = new Chart(expCtx, {
+                type: "pie",
+                data: {
+                    labels,
+                    datasets: [{
+                        data: expenseValues,
+                        backgroundColor: ["#36a2eb", "#ff6384", "#ffcd56", "#4bc0c0", "#9966ff", "#ff9f40", "#8bc34a"]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: "bottom"
+                        },
+                        datalabels: {
+                            color: "#000",
+                            formatter: (v, ctx) => {
+                                // Fallback for total calculation
+                                const sum = ctx.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+                                return sum ? ₹${v.toFixed(0)}\n${((v / sum) * 100).toFixed(1)}% : "";
+                            }
+                        }
+                    }
+                },
+                plugins: [ChartDataLabels]
+            });
+        }
+
+
+        /* ---------------------- REPORTS & RECORDS SECTION LOGIC ---------------------- */
+
+        // Added 'membersSection' to the list of sections
+        const sectionIds = ["dashboardMain", "reports", "records", "expenseDistribution", "membersSection"];
+
+        window.showSection = function(id) {
+            sectionIds.forEach(sec => {
+                const el = document.getElementById(sec);
+                if (el) el.classList.add("hidden");
+            });
+            const targetEl = document.getElementById(id);
+            if (targetEl) targetEl.classList.remove("hidden");
+
+            // Update data specific to the section
+            if (id === "reports") updateReport();
+            if (id === "records") renderRecords();
+            if (id === "membersSection") renderMembers(); // Render members when section is shown
+
+            // Re-render the chart when the Distribution tab is opened for stability.
+            if (id === "expenseDistribution") updateCharts(getMonthData());
+
+            // Always ensure the main data elements are updated
+            updateUI();
+        }
+
+        function updateReport() {
+            let data = getMonthData();
+            if (!data) return;
+
+            data = calculateCategoryTotals(data); // Ensure expenses are current
+
+            const totalSpent = categories.reduce((sum, c) => sum + (data.expenses[c.key] || 0), 0);
+            const totalBudget = data.budgetLimit || 0;
+            const remain = totalBudget - totalSpent;
+            const percent = totalBudget > 0 ? ((totalSpent / totalBudget) * 100).toFixed(1) : 0;
+
+            document.getElementById("rBudget").innerText = ₹${totalBudget.toFixed(2)};
+            document.getElementById("rSpent").innerText = ₹${totalSpent.toFixed(2)};
+            document.getElementById("rRemain").innerText = ₹${remain.toFixed(2)};
+            document.getElementById("rPercent").innerText = ${percent}%;
+
+            // Render Category Breakdown in Report
+            const breakdownDiv = document.getElementById("reportBreakdown");
+            breakdownDiv.innerHTML = "";
+            let hasExpenses = false;
+            categories.forEach(c => {
+                const spent = data.expenses[c.key] || 0;
+                if (spent > 0) {
+                    hasExpenses = true;
+                    const div = document.createElement("div");
+                    div.className = "card";
+                    div.style.padding = "10px";
+                    div.style.textAlign = "center";
+                    div.innerHTML = `<h4>${c.label}</h4>
+                         <p style="font-weight: bold; color: #0078ff;">₹${spent.toFixed(2)}</p>
+                     `;
+                    breakdownDiv.appendChild(div);
+                }
+            });
+            if (!hasExpenses) {
+                breakdownDiv.innerHTML = "<p style='margin-top: 10px; color: #999; grid-column: 1 / -1;'>No categorized expenses recorded for this month.</p>";
+            }
+        }
+
+        function renderRecords() {
+            const data = getMonthData();
+            if (!data) return;
+
+            const tbody = document.getElementById("recordBody");
+            const noRecords = document.getElementById("noRecords");
+            tbody.innerHTML = "";
+
+            if (data.transactions.length === 0) {
+                noRecords.classList.remove("hidden");
+                return;
+            }
+            noRecords.classList.add("hidden");
+
+            // Sort transactions by date (most recent first)
+            const sortedTransactions = [...data.transactions].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            sortedTransactions.forEach((e) => {
+                const row = `<tr>
+                    <td>${e.date}</td>
+                    <td>${e.categoryLabel}</td>
+                    <td>₹${e.amount.toFixed(2)}</td>
+                    <td><button style="background-color: #f44336; border: none; border-radius: 6px; color: white; padding: 4px 8px; cursor:pointer;" onclick="deleteRecord('${e.id}')">Delete</button></td>
+                </tr>`;
+                tbody.insertAdjacentHTML("beforeend", row);
+            });
+        }
+
+        window.deleteRecord = function(transactionId) {
+            if (!confirm("Are you sure you want to delete this specific expense record?")) return;
+
+            const data = getMonthData();
+            if (!data) return;
+
+            // Remove the transaction by filtering out the matching ID
+            data.transactions = data.transactions.filter(t => t.id != transactionId);
+
+            // Save updated data
+            const allData = getUserData();
+            allData[localStorage.getItem("loggedInUser")][getKey()] = data;
+            saveUserData(allData);
+
+            // Re-render the records and the main dashboard
+            renderRecords();
+            updateUI(); // This re-calculates totals and updates all views
+        }
+
+        /* ---------------------- MEMBERS SECTION LOGIC ---------------------- */
+
+        const membersListDiv = document.getElementById("membersList");
+        const noMembersP = document.getElementById("noMembers");
+        const memberNameInput = document.getElementById("memberNameInput");
+        const memberShareInput = document.getElementById("memberShareInput");
+        const totalShareUnitsDisplay = document.getElementById("totalShareUnits");
+
+        window.addMember = function() {
+            const name = memberNameInput.value.trim();
+            const share = parseInt(memberShareInput.value);
+
+            if (!name) return alert("Please enter a member name.");
+            if (isNaN(share) || share < 1) return alert("Share multiplier must be a positive integer (1 or more).");
+
+            const data = getMonthData();
+            if (!data) return;
+
+            // Check for duplicate names
+            if (data.members.some(m => m.name === name)) {
+                return alert(Member "${name}" already exists.);
+            }
+
+            data.members.push({
+                id: Date.now() + Math.random(),
+                name: name,
+                share: share
+            });
+
+            // Save updated data
+            const allData = getUserData();
+            allData[localStorage.getItem("loggedInUser")][getKey()] = data;
+            saveUserData(allData);
+
+            memberNameInput.value = "";
+            memberShareInput.value = "1";
+            renderMembers();
+        }
+
+        window.deleteMember = function(memberId) {
+            if (!confirm("Are you sure you want to remove this member?")) return;
+
+            const data = getMonthData();
+            if (!data) return;
+
+            data.members = data.members.filter(m => m.id != memberId);
+
+            // Save updated data
+            const allData = getUserData();
+            allData[localStorage.getItem("loggedInUser")][getKey()] = data;
+            saveUserData(allData);
+
+            renderMembers();
+        }
+
+        function renderMembers() {
+            const data = getMonthData();
+            if (!data) return;
+
+            membersListDiv.innerHTML = "";
+            let totalUnits = 0;
+
+            if (data.members.length === 0) {
+                noMembersP.classList.remove("hidden");
+                totalShareUnitsDisplay.textContent = "0";
+                return;
+            }
+            noMembersP.classList.add("hidden");
+
+            data.members.forEach(m => {
+                totalUnits += m.share;
+                const card = document.createElement("div");
+                card.className = "member-card";
+                card.innerHTML = `
+                    <button class="delete-member-btn" onclick="deleteMember('${m.id}')">✖</button>
+                    <h4>${m.name}</h4>
+                    <p>Share Multiplier: <strong>${m.share}</strong></p>
+                `;
+                membersListDiv.appendChild(card);
+            });
+
+            totalShareUnitsDisplay.textContent = totalUnits;
+        }
+
+        // Initial call
+        if (loggedUser) {
+            renderMembers(); // Ensure members are loaded on initial dashboard view
+            updateUI();
+        }
+    </script>
+</body>
+
+</html>
